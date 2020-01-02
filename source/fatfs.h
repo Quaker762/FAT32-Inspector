@@ -81,14 +81,20 @@ public:
     uint64_t fat_sector() const { return m_reserved_sectors; }
     uint64_t sector_address(uint32_t sector) const { return m_bytes_per_sector * sector; }
     uint64_t first_usable_cluster() const { return m_reserved_sectors + (m_number_of_fats * m_sectors_per_fat); }
-    uint64_t cluster_to_lba();
+    uint64_t cluster_to_sector(uint32_t cluster) const { return ((cluster-2) * m_sectors_per_cluster) + m_reserved_sectors; }
     uint64_t cluster_fat_sector(uint32_t cluster) const { return m_reserved_sectors + ((cluster * 4) / m_bytes_per_sector); }
     uint64_t cluster_fat_offset(uint32_t cluster) const { return (cluster * 4) % m_bytes_per_sector; }
 
-    void seek(uint64_t);
+    void seek(uint64_t) const;
+
+    const std::vector<DirectoryEntry> read_directory(uint32_t cluster) const;
 
 private:
-    void print_bpb(const MSDOSBootRecord&);
+    void print_bpb(const MSDOSBootRecord&) const;
+    void read_sector(uint8_t*, uint64_t) const;
+    void read_cluster(uint8_t*, uint32_t) const;
+
+    const std::vector<uint32_t> cluster_chain(uint32_t) const;
 
 private:
     std::string m_volume_name;
@@ -104,5 +110,5 @@ private:
     uint8_t m_number_of_fats { 0 };
     uint32_t m_sectors_per_fat { 0 };
 
-    uint32_t m_current_directory; // This is actually a cluster!
+    uint32_t m_current_directory { 0 }; // This is actually a cluster!
 };

@@ -5,7 +5,7 @@ CXX_OBJS = \
 CXX=g++
 INCLUDE += include/
 CXXFLAGS += -DDEBUG
-CXXFLAGS +=-std=c++14 -Wall -Wextra -Werror -Wold-style-cast -Wsign-compare -Wfloat-equal -g -ggdb
+CXXFLAGS +=-std=c++14 -Wall -Wextra -Wsign-compare -Wfloat-equal -g -ggdb
 CXXFLAGS += -I$(INCLUDE)
 
 BINDIR=bin
