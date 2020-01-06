@@ -50,6 +50,18 @@ struct MSDOSBootRecord
     uint16_t boot_signature; // 0xAA55
 } __attribute__((packed)) ;
 
+struct LongFileNameEntry
+{
+    uint8_t entry_order;
+    uint16_t lfn1[5];
+    uint8_t attribute; // Always 0x0f
+    uint8_t long_entry_type;
+    uint8_t checksum;
+    uint16_t lfn2[6];
+    uint16_t always0;
+    uint16_t lfn3[2];
+} __attribute__((packed));
+
 struct DirectoryEntry
 {
     char name[11];
@@ -68,6 +80,14 @@ struct DirectoryEntry
 
 class FATFileSystem
 {
+    // We can still read bad clusters, however we should NEVER allocate them!
+    static constexpr uint32_t BAD_CLUSTER = 0x0ffffff7;
+
+    // In Serenity, we use this value to signal and of a cluster, however
+    // any value greater than this is the of of a cluster too!
+    static constexpr uint32_t END_OF_CLUSTER = 0x0ffffff8;
+
+    static constexpr uint32_t CLUSTER_MASK = 0x0fffffff;
 public:
     explicit FATFileSystem(const char* fname);
 
@@ -75,15 +95,14 @@ public:
 
     uint16_t bytes_per_sector() const { return m_bytes_per_sector; }
     uint16_t sectors_per_cluster() const { return m_sectors_per_cluster; }
-    uint64_t root_sector() const { return m_root_cluster * m_sectors_per_cluster; }
 
     // Helper functions. There's a few.....
-    uint64_t fat_sector() const { return m_reserved_sectors; }
-    uint64_t sector_address(uint32_t sector) const { return m_bytes_per_sector * sector; }
-    uint64_t first_usable_cluster() const { return m_reserved_sectors + (m_number_of_fats * m_sectors_per_fat); }
-    uint64_t cluster_to_sector(uint32_t cluster) const { return ((cluster-2) * m_sectors_per_cluster) + m_reserved_sectors; }
+    uint64_t fat_sector() const { return m_reserved_sectors; } // Sector where the FAT begins
+    uint64_t sector_to_offset(uint32_t sector) const { return m_bytes_per_sector * sector; }
+    uint64_t cluster_to_sector(uint32_t cluster) const { return root_cluster() + cluster * m_sectors_per_cluster - (2 * m_sectors_per_cluster); }
     uint64_t cluster_fat_sector(uint32_t cluster) const { return m_reserved_sectors + ((cluster * 4) / m_bytes_per_sector); }
     uint64_t cluster_fat_offset(uint32_t cluster) const { return (cluster * 4) % m_bytes_per_sector; }
+    uint32_t root_cluster() const { return m_reserved_sectors + (m_number_of_fats * m_sectors_per_fat); }
 
     void seek(uint64_t) const;
 
